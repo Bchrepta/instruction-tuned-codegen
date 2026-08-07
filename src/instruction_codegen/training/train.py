@@ -200,12 +200,30 @@ def train(cfg: dict) -> dict:
     log_every = int(cfg.get("logging_steps", 10))
     save_every = int(cfg.get("save_steps", 200))
 
+    logger.info(
+        "Starting train loop on %s | batches/epoch=%d | update_steps=%d | "
+        "batch=%d accum=%d seq=%d precision=%s",
+        device,
+        steps_per_epoch,
+        total_update_steps,
+        batch_size,
+        grad_accum,
+        max_seq,
+        precision,
+    )
+    if not torch.cuda.is_available():
+        logger.warning(
+            "Running on CPU. The first step can take many minutes for a 1B+ model."
+        )
+
     done = False
     for epoch in range(epochs):
         if done:
             break
         optimizer.zero_grad(set_to_none=True)
         for step, batch in enumerate(train_loader):
+            if global_step == 0 and step == 0:
+                logger.info("Running first forward/backward (this is the slow one)...")
             batch = {k: v.to(device, non_blocking=True) for k, v in batch.items()}
 
             if use_amp:
