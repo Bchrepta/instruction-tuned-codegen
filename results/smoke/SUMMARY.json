@@ -1,0 +1,26 @@
+{
+  "note": "CPU smoke on tiny-random-LlamaForCausalLM. Not Llama-2 HumanEval results.",
+  "packing": {
+    "naive_pad_utilization": 0.3809,
+    "packed_utilization": 0.7617,
+    "approx_step_reduction": 0.5
+  },
+  "train": {
+    "steps": 5,
+    "lora_r": 16,
+    "lora_alpha": 32,
+    "elapsed_sec": 0.52
+  },
+  "eval_smoke": {
+    "humaneval_n": 5,
+    "pass_at_1": 0.0,
+    "harness_n": 10,
+    "safety_pass_rate": 1.0
+  },
+  "targets": {
+    "relative_humaneval_gain_pct": 23,
+    "gpu_util_naive_to_packed": [0.67, 0.94],
+    "train_time_cut": 0.38,
+    "harness_n": 500
+  }
+}

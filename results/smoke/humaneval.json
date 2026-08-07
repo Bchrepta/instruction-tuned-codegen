@@ -1,0 +1,33 @@
+{
+  "benchmark": "HumanEval",
+  "n": 5,
+  "pass_at_1": 0.0,
+  "passed": 0,
+  "details": [
+    {
+      "task_id": "smoke/0",
+      "passed": false,
+      "error": "SyntaxError: unmatched ')' (<unknown>, line 3)"
+    },
+    {
+      "task_id": "smoke/1",
+      "passed": false,
+      "error": "SyntaxError: invalid character '\ufffd' (U+FFFD) (<unknown>, line 3)"
+    },
+    {
+      "task_id": "smoke/2",
+      "passed": false,
+      "error": "SyntaxError: invalid character '\u201c' (U+201C) (<unknown>, line 3)"
+    },
+    {
+      "task_id": "smoke/3",
+      "passed": false,
+      "error": "SyntaxError: invalid character '\ufffd' (U+FFFD) (<unknown>, line 3)"
+    },
+    {
+      "task_id": "smoke/4",
+      "passed": false,
+      "error": "SyntaxError: unterminated string literal (detected at line 3) (<unknown>, line 3)"
+    }
+  ]
+}

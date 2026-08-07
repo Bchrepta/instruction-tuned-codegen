@@ -1,0 +1,32 @@
+{
+  "steps": 5,
+  "elapsed_sec": 0.52,
+  "precision": "fp32",
+  "packing": {
+    "num_examples": 64,
+    "num_packed_sequences": 32,
+    "total_tokens": 3120,
+    "capacity_tokens": 4096,
+    "utilization": 0.7617
+  },
+  "naive_pad_utilization": 0.3809,
+  "model_name_or_path": "hf-internal-testing/tiny-random-LlamaForCausalLM",
+  "output_dir": "C:\\Users\\bchrepta\\instruction-tuned-codegen\\checkpoints\\smoke-lora",
+  "max_seq_length": 128,
+  "lora": {
+    "r": 16,
+    "lora_alpha": 32,
+    "lora_dropout": 0.05,
+    "target_modules": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj",
+      "gate_proj",
+      "up_proj",
+      "down_proj"
+    ],
+    "bias": "none",
+    "task_type": "CAUSAL_LM"
+  }
+}

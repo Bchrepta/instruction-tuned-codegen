@@ -1,0 +1,12 @@
+{
+  "naive_pad_utilization": 0.3809,
+  "packed_utilization": 0.76171875,
+  "num_examples": 64,
+  "num_packed_sequences": 32,
+  "approx_step_reduction": 0.5,
+  "targets": {
+    "gpu_util_before": 0.67,
+    "gpu_util_after": 0.94,
+    "train_time_cut": 0.38
+  }
+}
