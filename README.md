@@ -25,11 +25,17 @@ LoRA fine-tuning for code models, with a packed-sequence DataLoader and an eval 
 python -m pip install -r requirements.txt
 ```
 
-CUDA torch (home GPU):
+CUDA torch (home GPU). Important: a normal `pip install torch` often gives a CPU wheel,
+which is why you may see `CUDA unavailable; falling back to fp32` even with an RTX 3080.
 
 ```bash
-python -m pip install torch --index-url https://download.pytorch.org/whl/cu124
+python -c "import torch; print(torch.__version__, torch.version.cuda, torch.cuda.is_available())"
+pip uninstall -y torch
+pip install torch --index-url https://download.pytorch.org/whl/cu124
+python -c "import torch; print(torch.__version__, torch.version.cuda, torch.cuda.is_available())"
 ```
+
+You want something like `2.x.x+cu124` and `True` for `is_available()`.
 
 QLoRA needs `bitsandbytes`. On Windows that package is hit-or-miss; WSL2 or native Linux is the reliable path for `load_in_4bit: true`.
 

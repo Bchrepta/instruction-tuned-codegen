@@ -38,7 +38,18 @@ def _dtype_from_cfg(precision: str) -> torch.dtype:
 
 def _resolve_precision(cfg: dict) -> tuple[str, torch.dtype]:
     requested = str(cfg.get("precision", "bf16")).lower()
+    wants_gpu = bool(cfg.get("load_in_4bit")) or requested in {"bf16", "fp16"}
     if not torch.cuda.is_available():
+        if wants_gpu:
+            raise RuntimeError(
+                "This config expects a CUDA GPU, but torch.cuda.is_available() is False. "
+                "You likely installed a CPU-only PyTorch build. In your venv run:\n"
+                "  python -c \"import torch; print(torch.__version__, torch.version.cuda)\"\n"
+                "Then install a CUDA build, e.g.:\n"
+                "  pip uninstall -y torch\n"
+                "  pip install torch --index-url https://download.pytorch.org/whl/cu124\n"
+                "Confirm with nvidia-smi and torch.cuda.is_available() before training again."
+            )
         logger.warning("CUDA unavailable; falling back to fp32")
         return "fp32", torch.float32
     if requested == "bf16" and not torch.cuda.is_bf16_supported():
