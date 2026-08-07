@@ -142,20 +142,21 @@ def unsafe_execute(code: str, timeout_s: float = 3.0) -> tuple[bool, str | None]
         exec(code, {"__builtins__": __builtins__})  # noqa: S102
 
     try:
-        # Windows has no SIGALRM; rely on short programs + try/except.
-        if hasattr(signal, "SIGALRM"):
-            def handler(signum, frame):  # noqa: ANN001
-                raise TimeoutError("timeout")
+        # Silence prints from candidate solutions / tests during scoring.
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            if hasattr(signal, "SIGALRM"):
+                def handler(signum, frame):  # noqa: ANN001
+                    raise TimeoutError("timeout")
 
-            old = signal.signal(signal.SIGALRM, handler)
-            signal.setitimer(signal.ITIMER_REAL, timeout_s)
-            try:
+                old = signal.signal(signal.SIGALRM, handler)
+                signal.setitimer(signal.ITIMER_REAL, timeout_s)
+                try:
+                    _run()
+                finally:
+                    signal.setitimer(signal.ITIMER_REAL, 0)
+                    signal.signal(signal.SIGALRM, old)
+            else:
                 _run()
-            finally:
-                signal.setitimer(signal.ITIMER_REAL, 0)
-                signal.signal(signal.SIGALRM, old)
-        else:
-            _run()
         return True, None
     except Exception as e:  # noqa: BLE001
         return False, f"{type(e).__name__}: {e}"
@@ -208,6 +209,10 @@ def generate_completion(
         gen_kwargs.update(do_sample=True, temperature=temperature, top_p=top_p)
     else:
         gen_kwargs.update(do_sample=False)
+
+    # Avoid transformers warning when both max_length and max_new_tokens are set.
+    if getattr(model, "generation_config", None) is not None:
+        model.generation_config.max_length = None
 
     with torch.no_grad():
         out = model.generate(**inputs, **gen_kwargs)

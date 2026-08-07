@@ -58,8 +58,11 @@ def cmd_eval(args: argparse.Namespace) -> None:
 
     dtype = torch.float16 if torch.cuda.is_available() else torch.float32
     model = AutoModelForCausalLM.from_pretrained(base, torch_dtype=dtype)
-    if adapter_path.exists():
+    use_adapter = not getattr(args, "no_adapter", False)
+    if use_adapter and adapter_path.exists():
         model = PeftModel.from_pretrained(model, str(adapter_path))
+    elif use_adapter and not adapter_path.exists():
+        print(f"Warning: adapter not found at {adapter_path}; evaluating base model only")
     if torch.cuda.is_available():
         model = model.cuda()
     model.eval()
@@ -163,6 +166,7 @@ def build_parser() -> argparse.ArgumentParser:
     ev = sub.add_parser("eval", help="HumanEval + harness evaluation")
     ev.add_argument("--config", required=True)
     ev.add_argument("--adapter", default=None)
+    ev.add_argument("--no-adapter", action="store_true", help="Eval base model only (skip LoRA adapter)")
     ev.add_argument("--base-model", default=None)
     ev.add_argument("--output", default=None)
     ev.add_argument("--humaneval-n", type=int, default=None)
