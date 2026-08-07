@@ -1,7 +1,6 @@
-# RTX 3080 10GB - QLoRA home run
-# Default model is TinyLlama (ungated). For Llama-2-7B QLoRA, set:
-#   model_name_or_path: meta-llama/Llama-2-7b-hf
-# and keep load_in_4bit: true, max_seq_length: 1024, batch 1.
+# RTX 3080 10GB - TinyLlama fp16 LoRA (no bitsandbytes needed)
+# TinyLlama ~1.1B fits easily in 10GB. For Llama-2-7B on this card, use
+# configs/rtx3080_llama2.yaml (needs bitsandbytes / usually WSL2).
 model_name_or_path: TinyLlama/TinyLlama-1.1B-Chat-v1.0
 output_dir: checkpoints/rtx3080-lora
 dataset_path: data/processed/codealpaca_15k.jsonl
@@ -36,7 +35,7 @@ precision: fp16
 gradient_checkpointing: true
 use_packing: true
 packing_efficiency_log: true
-load_in_4bit: true
+load_in_4bit: false
 
 eval:
   humaneval_n: 164

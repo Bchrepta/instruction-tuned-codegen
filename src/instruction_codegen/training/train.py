@@ -74,6 +74,15 @@ def build_model_and_tokenizer(cfg: dict):
     if use_4bit:
         from transformers import BitsAndBytesConfig
 
+        try:
+            import bitsandbytes  # noqa: F401
+        except ImportError as e:
+            raise ImportError(
+                "load_in_4bit=true needs bitsandbytes. On Windows this often fails; "
+                "prefer configs/rtx3080.yaml (TinyLlama, no 4-bit) or install under WSL2:\n"
+                '  pip install -U "bitsandbytes>=0.46.1"'
+            ) from e
+
         model_kwargs["quantization_config"] = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_compute_dtype=dtype,

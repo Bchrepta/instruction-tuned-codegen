@@ -9,14 +9,14 @@ LoRA fine-tuning for code models, with a packed-sequence DataLoader and an eval 
 - LoRA: rank 16, alpha 32
 - Training: sequence packing, bf16 or fp16, gradient checkpointing
 - Full target box: one A100 40GB, seq length 2048
-- Home GPU path: RTX 3080 10GB via QLoRA (`configs/rtx3080.yaml`)
+- Home GPU path: RTX 3080 10GB (`configs/rtx3080.yaml`, TinyLlama fp16 LoRA)
 - Eval: HumanEval plus a 500-example harness
 
 | Config | Use when |
 |---|---|
 | `configs/a100.yaml` | A100 / 40GB+, Llama-2-7B, full bf16 LoRA |
-| `configs/rtx3080.yaml` | RTX 3080 (or similar), TinyLlama QLoRA |
-| `configs/rtx3080_llama2.yaml` | RTX 3080, Llama-2-7B QLoRA (needs HF access) |
+| `configs/rtx3080.yaml` | RTX 3080 (or similar), TinyLlama fp16 LoRA |
+| `configs/rtx3080_llama2.yaml` | RTX 3080, Llama-2-7B QLoRA (needs bitsandbytes + HF access) |
 | `configs/smoke.yaml` | CPU / quick wiring check |
 
 ## Setup
@@ -37,7 +37,9 @@ python -c "import torch; print(torch.__version__, torch.version.cuda, torch.cuda
 
 You want something like `2.x.x+cu124` and `True` for `is_available()`.
 
-QLoRA needs `bitsandbytes`. On Windows that package is hit-or-miss; WSL2 or native Linux is the reliable path for `load_in_4bit: true`.
+`configs/rtx3080.yaml` (TinyLlama) does **not** need bitsandbytes. Only the Llama-2 QLoRA
+config does (`configs/rtx3080_llama2.yaml`). On Windows, bitsandbytes is unreliable; use
+WSL2 if you go that route: `pip install -U "bitsandbytes>=0.46.1"`.
 
 Llama-2 runs also need HF access to `meta-llama/Llama-2-7b-hf` and `huggingface-cli login` (or `HF_TOKEN`).
 
