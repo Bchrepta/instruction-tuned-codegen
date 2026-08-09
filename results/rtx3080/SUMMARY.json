@@ -1,0 +1,39 @@
+{
+  "run": "rtx3080",
+  "hardware": "RTX 3080 10GB",
+  "config": "configs/rtx3080.yaml",
+  "model_name_or_path": "TinyLlama/TinyLlama-1.1B-Chat-v1.0",
+  "adapter": "checkpoints/rtx3080-lora",
+  "train": {
+    "steps": 220,
+    "elapsed_sec": 961.36,
+    "precision": "fp16",
+    "max_seq_length": 1024,
+    "lora_r": 16,
+    "lora_alpha": 32,
+    "naive_pad_utilization": 0.1085,
+    "packed_utilization": 0.9226,
+    "num_examples": 15000,
+    "num_packed_sequences": 1764
+  },
+  "eval_finetuned": {
+    "humaneval": {
+      "n": 164,
+      "pass_at_1": 0.018292682926829267,
+      "passed": 3
+    },
+    "harness": {
+      "n_total": 500,
+      "correctness_pass_rate": 0.02,
+      "efficiency_pass_rate": 0.0,
+      "safety_pass_rate": 0.6875
+    }
+  },
+  "eval_base": null,
+  "compare_humaneval": null,
+  "notes": [
+    "Packing is the strongest measured result on this run (10.8% naive pad to 92.3% packed).",
+    "HumanEval ~1.8% is weak but expected for TinyLlama-1.1B; this is not the Llama-2 A100 target.",
+    "Base TinyLlama HumanEval was not available in-repo when this summary was written, so relative gain is unknown. Re-run with --no-adapter into results/rtx3080_base and scripts/write_summary.py."
+  ]
+}

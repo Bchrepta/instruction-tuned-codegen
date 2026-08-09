@@ -1,0 +1,8 @@
+{
+  "benchmark": "HumanEval",
+  "n": 164,
+  "pass_at_1": 0.018292682926829267,
+  "passed": 3,
+  "model": "TinyLlama/TinyLlama-1.1B-Chat-v1.0 + LoRA adapter checkpoints/rtx3080-lora",
+  "note": "Summary only. Local run may have a details[] array that was not committed."
+}

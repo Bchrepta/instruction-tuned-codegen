@@ -62,6 +62,14 @@ python scripts/run.py train --config configs/rtx3080.yaml
 python scripts/run.py eval --config configs/rtx3080.yaml --output results/rtx3080 --humaneval-n 164 --harness-n 500
 ```
 
+Base model (no adapter), then a one-file summary:
+
+```bash
+python scripts/run.py eval --config configs/rtx3080.yaml --output results/rtx3080_base --humaneval-n 164 --harness-n 500 --no-adapter
+python scripts/write_summary.py --results-dir results/rtx3080 --base-dir results/rtx3080_base --hardware "RTX 3080 10GB" --config configs/rtx3080.yaml
+python scripts/compare_humaneval.py --base results/rtx3080_base/humaneval.json --ft results/rtx3080/humaneval.json
+```
+
 If you have Llama-2 access and want the 7B QLoRA variant:
 
 ```bash
@@ -103,6 +111,28 @@ Relative HumanEval gain:
 (pass@1_ft - pass@1_base) / pass@1_base
 ```
 
+## Results (measured)
+
+### RTX 3080 / TinyLlama (`configs/rtx3080.yaml`)
+
+Artifacts: `results/rtx3080/`. Model: TinyLlama-1.1B + LoRA (r=16, alpha=32), fp16, seq 1024, 15k CodeAlpaca examples, 220 steps (~16 min).
+
+| Metric | Measured |
+|---|---|
+| Naive pad util | 10.8% |
+| Packed util | 92.3% |
+| Packed sequences | 1764 from 15000 examples |
+| HumanEval pass@1 (fine-tuned) | 3/164 (~1.83%) |
+| Harness correctness | 2% (9/450) |
+| Harness efficiency | 0% (0/2) |
+| Harness safety | ~68.8% (33/48) |
+
+Packing is the clear win on this box. HumanEval is low for TinyLlama-1.1B; that is not the Llama-2 A100 target. Base TinyLlama HumanEval was not checked in with this summary, so relative gain is still open. Run the base eval commands above and refresh `SUMMARY.json`.
+
+### A100 / Llama-2-7B
+
+Not measured in-repo yet. Targets live in `results/TARGETS.md`.
+
 ## Layout
 
 ```text
@@ -112,6 +142,7 @@ src/instruction_codegen/
   training/              LoRA / QLoRA SFT
   eval/                  HumanEval + harness + safety checks
 scripts/run.py           prepare-data | train | eval | benchmark-packing
+scripts/write_summary.py fold train/eval JSON into SUMMARY.json
 tests/
 results/
 ```
