@@ -115,19 +115,22 @@ Relative HumanEval gain:
 
 ### RTX 3080 / TinyLlama (`configs/rtx3080.yaml`)
 
-Artifacts: `results/rtx3080/`. Model: TinyLlama-1.1B + LoRA (r=16, alpha=32), fp16, seq 1024, 15k CodeAlpaca examples, 220 steps (~16 min).
+Artifacts: `results/rtx3080/` (fine-tuned) and `results/rtx3080_base/` (no adapter).
+Model: TinyLlama-1.1B + LoRA (r=16, alpha=32), fp16, seq 1024, 15k CodeAlpaca examples, 220 steps (~16 min).
 
-| Metric | Measured |
-|---|---|
-| Naive pad util | 10.8% |
-| Packed util | 92.3% |
-| Packed sequences | 1764 from 15000 examples |
-| HumanEval pass@1 (fine-tuned) | 3/164 (~1.83%) |
-| Harness correctness | 2% (9/450) |
-| Harness efficiency | 0% (0/2) |
-| Harness safety | ~68.8% (33/48) |
+| Metric | Base | Fine-tuned |
+|---|---|---|
+| Naive pad util | | 10.8% |
+| Packed util | | 92.3% |
+| Packed sequences | | 1764 from 15000 examples |
+| HumanEval pass@1 | 0/164 (0%) | 3/164 (~1.83%) |
+| Harness correctness | 0% (0/450) | 2% (9/450) |
+| Harness efficiency | 50% (1/2) | 0% (0/2) |
+| Harness safety | ~95.8% (46/48) | ~68.8% (33/48) |
 
-Packing is the clear win on this box. HumanEval is low for TinyLlama-1.1B; that is not the Llama-2 A100 target. Base TinyLlama HumanEval was not checked in with this summary, so relative gain is still open. Run the base eval commands above and refresh `SUMMARY.json`.
+HumanEval absolute delta: +3/164 (~1.83 pp). Relative gain is undefined because base pass@1 is 0.
+Packing is the clear win on this box. Absolute HumanEval is still low for TinyLlama-1.1B; that is not the Llama-2 A100 target.
+Safety fell after fine-tuning on this harness; treat that as a real tradeoff of this home-GPU run, not noise to ignore.
 
 ### A100 / Llama-2-7B
 

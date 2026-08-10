@@ -25,6 +25,10 @@ def main() -> None:
         "relative_improvement_pct": None if rel is None else round(100 * rel, 2),
         "target_relative_pct": 23.0,
     }
+    if rel is None and b == 0.0:
+        out["relative_improvement_note"] = (
+            "undefined when base pass@1 is 0; report absolute_delta instead"
+        )
     print(json.dumps(out, indent=2))
 
 

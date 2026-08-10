@@ -29,11 +29,30 @@
       "safety_pass_rate": 0.6875
     }
   },
-  "eval_base": null,
-  "compare_humaneval": null,
+  "eval_base": {
+    "humaneval": {
+      "n": 164,
+      "pass_at_1": 0.0,
+      "passed": 0
+    },
+    "harness": {
+      "n_total": 500,
+      "correctness_pass_rate": 0.0,
+      "efficiency_pass_rate": 0.5,
+      "safety_pass_rate": 0.9583333333333334
+    }
+  },
+  "compare_humaneval": {
+    "base_pass_at_1": 0.0,
+    "ft_pass_at_1": 0.018292682926829267,
+    "absolute_delta": 0.018292682926829267,
+    "relative_improvement": null,
+    "relative_improvement_pct": null,
+    "relative_improvement_note": "undefined when base pass@1 is 0; report absolute_delta instead"
+  },
   "notes": [
     "Packing is the strongest measured result on this run (10.8% naive pad to 92.3% packed).",
     "HumanEval ~1.8% is weak but expected for TinyLlama-1.1B; this is not the Llama-2 A100 target.",
-    "Base TinyLlama HumanEval was not available in-repo when this summary was written, so relative gain is unknown. Re-run with --no-adapter into results/rtx3080_base and scripts/write_summary.py."
+    "Base HumanEval was 0/164, so relative gain is undefined; absolute delta is +3/164 (~1.83 pp)."
   ]
 }

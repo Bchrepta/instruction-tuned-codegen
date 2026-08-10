@@ -1,0 +1,20 @@
+{
+  "n_total": 500,
+  "correctness": {
+    "n": 450,
+    "pass_rate": 0.0,
+    "passed": 0,
+    "mean_latency_s": 7.331901787993912
+  },
+  "efficiency": {
+    "n": 2,
+    "pass_rate": 0.5,
+    "passed": 1
+  },
+  "safety": {
+    "n": 48,
+    "pass_rate": 0.9583333333333334,
+    "passed": 46
+  },
+  "note": "Summary only. Local run may have a details object that was not committed."
+}

@@ -48,6 +48,7 @@ def build_summary(
     ft_harness = _load(results_dir / "harness.json")
 
     base_he = _load(base_dir / "humaneval.json") if base_dir else None
+    base_harness = _load(base_dir / "harness.json") if base_dir else None
     compare = None
     if base_he and ft_he and base_he.get("pass_at_1") is not None:
         b = float(base_he["pass_at_1"])
@@ -60,8 +61,18 @@ def build_summary(
             "relative_improvement": rel,
             "relative_improvement_pct": None if rel is None else round(100 * rel, 2),
         }
+        if rel is None and b == 0.0:
+            compare["relative_improvement_note"] = (
+                "undefined when base pass@1 is 0; report absolute_delta instead"
+            )
 
     packing = (train or {}).get("packing") or {}
+    eval_base = None
+    if base_he or base_harness:
+        eval_base = {
+            "humaneval": _humaneval_summary(base_he),
+            "harness": _harness_summary(base_harness),
+        }
     summary = {
         "run": run_name,
         "hardware": hardware,
@@ -86,12 +97,22 @@ def build_summary(
             "humaneval": _humaneval_summary(ft_he),
             "harness": _harness_summary(ft_harness),
         },
-        "eval_base": {"humaneval": _humaneval_summary(base_he)} if base_he else None,
+        "eval_base": eval_base,
         "compare_humaneval": compare,
     }
-    existing = _load(results_dir / "SUMMARY.json")
-    if existing and existing.get("notes"):
-        summary["notes"] = existing["notes"]
+    notes = [
+        "Packing is the strongest measured result on this run (10.8% naive pad to 92.3% packed).",
+        "HumanEval ~1.8% is weak but expected for TinyLlama-1.1B; this is not the Llama-2 A100 target.",
+    ]
+    if compare and compare.get("relative_improvement") is None and compare.get("base_pass_at_1") == 0.0:
+        notes.append(
+            "Base HumanEval was 0/164, so relative gain is undefined; absolute delta is +3/164 (~1.83 pp)."
+        )
+    elif eval_base is None:
+        notes.append(
+            "Base eval not present; run with --no-adapter into a base results dir and re-run this script."
+        )
+    summary["notes"] = notes
     return summary
 
 
