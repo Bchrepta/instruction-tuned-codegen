@@ -100,17 +100,39 @@ def build_summary(
         "eval_base": eval_base,
         "compare_humaneval": compare,
     }
-    notes = [
-        "Packing is the strongest measured result on this run (10.8% naive pad to 92.3% packed).",
-        "HumanEval ~1.8% is weak but expected for TinyLlama-1.1B; this is not the Llama-2 A100 target.",
-    ]
-    if compare and compare.get("relative_improvement") is None and compare.get("base_pass_at_1") == 0.0:
+    notes: list[str] = []
+    train_block = summary.get("train") or {}
+    naive = train_block.get("naive_pad_utilization")
+    packed = train_block.get("packed_utilization")
+    if naive is not None and packed is not None:
         notes.append(
-            "Base HumanEval was 0/164, so relative gain is undefined; absolute delta is +3/164 (~1.83 pp)."
+            f"Packing is the strongest measured result on this run "
+            f"({100 * float(naive):.1f}% naive pad to {100 * float(packed):.1f}% packed)."
+        )
+    ft_he = (summary.get("eval_finetuned") or {}).get("humaneval") or {}
+    if ft_he.get("pass_at_1") is not None:
+        notes.append(
+            f"HumanEval pass@1 (fine-tuned) is {100 * float(ft_he['pass_at_1']):.2f}% "
+            f"({ft_he.get('passed')}/{ft_he.get('n')}); TinyLlama home runs are not the Llama-2 A100 target."
+        )
+    if compare and compare.get("relative_improvement") is None and compare.get("base_pass_at_1") == 0.0:
+        passed = ft_he.get("passed")
+        n = ft_he.get("n")
+        delta = compare.get("absolute_delta")
+        notes.append(
+            f"Base HumanEval was 0/{n}, so relative gain is undefined; "
+            f"absolute delta is +{passed}/{n} ({100 * float(delta):.2f} pp)."
         )
     elif eval_base is None:
         notes.append(
             "Base eval not present; run with --no-adapter into a base results dir and re-run this script."
+        )
+    base_harness = (eval_base or {}).get("harness") if eval_base else None
+    ft_harness = (summary.get("eval_finetuned") or {}).get("harness") or {}
+    if base_harness and ft_harness.get("safety_pass_rate") is not None:
+        notes.append(
+            f"Harness safety: base {100 * float(base_harness['safety_pass_rate']):.1f}% vs "
+            f"fine-tuned {100 * float(ft_harness['safety_pass_rate']):.1f}%."
         )
     summary["notes"] = notes
     return summary

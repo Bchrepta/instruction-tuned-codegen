@@ -52,7 +52,8 @@
   },
   "notes": [
     "Packing is the strongest measured result on this run (10.8% naive pad to 92.3% packed).",
-    "HumanEval ~1.8% is weak but expected for TinyLlama-1.1B; this is not the Llama-2 A100 target.",
-    "Base HumanEval was 0/164, so relative gain is undefined; absolute delta is +3/164 (~1.83 pp)."
+    "HumanEval pass@1 (fine-tuned) is 1.83% (3/164); TinyLlama home runs are not the Llama-2 A100 target.",
+    "Base HumanEval was 0/164, so relative gain is undefined; absolute delta is +3/164 (1.83 pp).",
+    "Harness safety: base 95.8% vs fine-tuned 68.8%."
   ]
 }

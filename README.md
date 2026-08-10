@@ -166,6 +166,7 @@ python -m pytest tests/ -q
 
 ## Notes
 
-- Smoke runs only check that the code path works.
-- RTX 3080 QLoRA is a real GPU run, but TinyLlama numbers are not the Llama-2 A100 targets.
+- Smoke runs only check that the code path works (`results/smoke/`).
+- Home-GPU measured compare: `results/rtx3080/` vs `results/rtx3080_base/`. Packing util is the strong result; HumanEval absolute +3/164 with base at 0; safety dropped after fine-tune on this harness.
+- TinyLlama numbers are not the Llama-2 A100 targets.
 - Full Llama-2 bf16 numbers need A100-class VRAM (or cloud) plus HF access.
