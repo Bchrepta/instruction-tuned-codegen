@@ -24,5 +24,6 @@ See `results/rtx3080/SUMMARY.json`. Base artifacts: `results/rtx3080_base/`.
 | Harness efficiency | 50% (1/2) | 0% (0/2) |
 | Harness safety | ~95.8% (46/48) | ~68.8% (33/48) |
 | Relative HumanEval vs base | undefined (base=0); absolute +3/164 | |
+| Harness safety | ~95.8% | ~68.8% (dropped after SFT) |
 
-`results/smoke/` is a pipeline check only.
+`results/smoke/` is a pipeline check only (tiny-random model, not comparable).
