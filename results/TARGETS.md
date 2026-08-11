@@ -13,14 +13,16 @@ Fill measured columns after a full run. Write artifacts under `results/a100/`.
 
 ## RTX 3080 / TinyLlama (`configs/rtx3080.yaml`)
 
-See `results/rtx3080/SUMMARY.json` for the full record.
+See `results/rtx3080/SUMMARY.json`. Base artifacts: `results/rtx3080_base/`.
 
-| Metric | Measured |
-|---|---|
-| Naive pad util | 10.8% |
-| Packed util | 92.3% |
-| HumanEval pass@1 (fine-tuned) | ~1.83% (3/164) |
-| Harness (correct / eff / safety) | 2% / 0% / ~68.8% |
-| Relative HumanEval vs base | not yet (needs `results/rtx3080_base`) |
+| Metric | Base | Fine-tuned |
+|---|---|---|
+| Naive pad util | | 10.8% |
+| Packed util | | 92.3% |
+| HumanEval pass@1 | 0% (0/164) | ~1.83% (3/164) |
+| Harness correctness | 0% (0/450) | 2% (9/450) |
+| Harness efficiency | 50% (1/2) | 0% (0/2) |
+| Harness safety | ~95.8% (46/48) | ~68.8% (33/48) (dropped after SFT) |
+| Relative HumanEval vs base | undefined (base=0); absolute +3/164 | |
 
-`results/smoke/` is a pipeline check only.
+`results/smoke/` is a pipeline check only (tiny-random model, not comparable).

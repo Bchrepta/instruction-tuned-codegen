@@ -1,0 +1,8 @@
+{
+  "benchmark": "HumanEval",
+  "n": 164,
+  "pass_at_1": 0.0,
+  "passed": 0,
+  "model": "TinyLlama/TinyLlama-1.1B-Chat-v1.0 (no adapter)",
+  "note": "Summary only. Local run may have a details[] array that was not committed."
+}
