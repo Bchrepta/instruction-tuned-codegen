@@ -116,8 +116,11 @@ def load_humaneval_tasks(n: int | None = None) -> list[dict]:
 
 
 # Stops for *raw* HumanEval continuation (model is already inside a function body).
-# Do NOT use these as live generation stops in instruction/chat mode: models often
-# write a short preamble and then `def`, and `\ndef` would cut off before any code.
+# Live generation uses the short list only; post-hoc cleanup can be slightly broader.
+LIVE_STOP_SEQUENCES = (
+    "\nclass",
+    "\ndef",
+)
 RAW_STOP_SEQUENCES = (
     "\nclass",
     "\ndef",

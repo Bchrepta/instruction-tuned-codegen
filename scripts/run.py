@@ -51,19 +51,45 @@ def cmd_eval(args: argparse.Namespace) -> None:
         adapter_path = root / adapter_path
 
     tokenizer = AutoTokenizer.from_pretrained(
-        adapter_path if adapter_path.exists() else base, use_fast=True
+        adapter_path if adapter_path.exists() and not getattr(args, "no_adapter", False) else base,
+        use_fast=True,
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
+    use_4bit = bool(cfg.get("load_in_4bit")) and torch.cuda.is_available()
     dtype = torch.float16 if torch.cuda.is_available() else torch.float32
-    model = AutoModelForCausalLM.from_pretrained(base, torch_dtype=dtype)
+    model_kwargs: dict = {}
+    if use_4bit:
+        from transformers import BitsAndBytesConfig
+
+        try:
+            import bitsandbytes  # noqa: F401
+        except ImportError as e:
+            raise ImportError(
+                "load_in_4bit=true needs bitsandbytes for eval too. "
+                'Install with: pip install -U "bitsandbytes>=0.46.1"'
+            ) from e
+        model_kwargs["quantization_config"] = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=dtype,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+        )
+        model_kwargs["device_map"] = "auto"
+        logging.info("Eval load: 4-bit NF4 (matches QLoRA train config)")
+    else:
+        model_kwargs["torch_dtype"] = dtype
+        logging.info("Eval load: dtype=%s", dtype)
+
+    model = AutoModelForCausalLM.from_pretrained(base, **model_kwargs)
     use_adapter = not getattr(args, "no_adapter", False)
     if use_adapter and adapter_path.exists():
         model = PeftModel.from_pretrained(model, str(adapter_path))
+        logging.info("Loaded adapter from %s", adapter_path)
     elif use_adapter and not adapter_path.exists():
         print(f"Warning: adapter not found at {adapter_path}; evaluating base model only")
-    if torch.cuda.is_available():
+    if torch.cuda.is_available() and not use_4bit:
         model = model.cuda()
     model.eval()
 
