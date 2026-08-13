@@ -116,7 +116,7 @@ def run_harness(
             max_new_tokens=max_new_tokens,
             temperature=temperature,
             top_p=top_p,
-            prompt_mode="code",
+            prompt_mode="raw",
         )
         latencies.append(time.perf_counter() - t0)
         result = check_correctness(case, completion)
