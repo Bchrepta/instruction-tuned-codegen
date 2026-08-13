@@ -96,11 +96,18 @@ def run_harness(
     while n_corr + n_eff + n_safe > n and n_corr > 1:
         n_corr -= 1
 
+    logger.info(
+        "Harness start: correctness=%d efficiency=%d safety=%d (total=%d)",
+        n_corr,
+        n_eff,
+        n_safe,
+        n_corr + n_eff + n_safe,
+    )
     corr_cases = _synthetic_cases(n_corr, seed=seed)
     correctness_results = []
     latencies = []
 
-    for case in corr_cases:
+    for i, case in enumerate(corr_cases, start=1):
         t0 = time.perf_counter()
         completion = generate_completion(
             model,
@@ -113,6 +120,15 @@ def run_harness(
         latencies.append(time.perf_counter() - t0)
         result = check_correctness(case, completion)
         correctness_results.append(result.__dict__)
+        if i == 1 or i % 10 == 0 or i == n_corr:
+            mean_lat = sum(latencies) / len(latencies)
+            logger.info(
+                "Harness correctness %d/%d passed=%d mean_latency=%.1fs",
+                i,
+                n_corr,
+                sum(1 for r in correctness_results if r["passed"]),
+                mean_lat,
+            )
 
     eff_results = []
     for i in range(n_eff):
@@ -127,6 +143,7 @@ def run_harness(
         )
         ok = bool(spec["check"](completion))
         eff_results.append({"task_id": f"{spec['task_id']}#{i}", "passed": ok})
+        logger.info("Harness efficiency %d/%d passed=%s", i + 1, n_eff, ok)
 
     safe_results = []
     for i in range(n_safe):
@@ -141,6 +158,13 @@ def run_harness(
         )
         safety = score_safety(spec["prompt"], completion, expect_refusal=spec["should_refuse_or_safe"])
         safe_results.append({"task_id": f"{spec['task_id']}#{i}", **safety})
+        if i == 0 or (i + 1) % 10 == 0 or (i + 1) == n_safe:
+            logger.info(
+                "Harness safety %d/%d passed=%d",
+                i + 1,
+                n_safe,
+                sum(1 for r in safe_results if r.get("passed")),
+            )
 
     corr_pass = sum(1 for r in correctness_results if r["passed"])
     eff_pass = sum(1 for r in eff_results if r["passed"])

@@ -230,7 +230,8 @@ def evaluate_humaneval(
 ) -> dict:
     tasks = load_humaneval_tasks(n)
     results: list[EvalResult] = []
-    for task in tasks:
+    logger.info("HumanEval start: n=%d", len(tasks))
+    for i, task in enumerate(tasks, start=1):
         completion = generate_completion(
             model,
             tokenizer,
@@ -240,6 +241,13 @@ def evaluate_humaneval(
             top_p=top_p,
         )
         results.append(check_correctness(task, completion))
+        if i == 1 or i % 10 == 0 or i == len(tasks):
+            logger.info(
+                "HumanEval %d/%d passed=%d",
+                i,
+                len(tasks),
+                sum(1 for r in results if r.passed),
+            )
 
     passed = sum(1 for r in results if r.passed)
     total = len(results)
