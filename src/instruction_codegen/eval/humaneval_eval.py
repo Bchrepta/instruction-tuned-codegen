@@ -115,23 +115,107 @@ def load_humaneval_tasks(n: int | None = None) -> list[dict]:
     return tasks
 
 
-def extract_code(completion: str, prompt: str) -> str:
-    """Extract Python solution body from model completion."""
-    text = completion
-    if "```" in text:
-        parts = text.split("```")
-        for i, part in enumerate(parts):
-            if i % 2 == 1:
-                body = part
-                if body.startswith("python"):
-                    body = body[len("python") :]
-                text = body.strip()
-                break
-    # If model echoed the prompt signature, keep from first def
-    if "def " in text and "def " in prompt:
-        # Prefer completion-only: strip leading prompt echo
-        if text.startswith(prompt):
-            text = text[len(prompt) :]
+# HumanEval / Codex-style stops. Applied to the completion only (not the prompt).
+STOP_SEQUENCES = (
+    "\nclass ",
+    "\nclass\t",
+    "\ndef ",
+    "\ndef\t",
+    "\n#",
+    "\nif __name__",
+    "\nprint(",
+    "\nassert ",
+    "\n@@@",
+)
+
+
+def wrap_code_completion_prompt(code_prompt: str) -> str:
+    """Match CodeAlpaca SFT format so instruction-tuned adapters stay on-distribution."""
+    return (
+        "### Instruction:\n"
+        "Complete the following Python function. "
+        "Only write the continuation of the function body, preserving indentation. "
+        "Do not repeat the function signature or docstring.\n\n"
+        f"### Input:\n{code_prompt}\n\n"
+        "### Response:\n"
+    )
+
+
+def wrap_chat_prompt(user_text: str) -> str:
+    return f"### Instruction:\n{user_text.strip()}\n\n### Response:\n"
+
+
+def truncate_at_stop_sequences(text: str) -> str:
+    cut = len(text)
+    for stop in STOP_SEQUENCES:
+        idx = text.find(stop)
+        if idx > 0:
+            cut = min(cut, idx)
+    return text[:cut]
+
+
+def strip_markdown_fence(text: str) -> str:
+    if "```" not in text:
+        return text
+    parts = text.split("```")
+    for i, part in enumerate(parts):
+        if i % 2 == 1:
+            body = part
+            first, _, rest = body.partition("\n")
+            if first.strip().lower() in {"python", "py", "python3"}:
+                body = rest
+            elif first.strip() == "":
+                body = rest
+            return body.strip("\n")
+    return text
+
+
+def _drop_rewritten_signature(text: str, entry_point: str | None) -> str:
+    """If the model re-emits `def entry(...):`, keep only the function body."""
+    stripped = text.lstrip("\n")
+    if not stripped.lstrip().startswith("def "):
+        return text
+    first_line, _, remainder = stripped.partition("\n")
+    head = first_line.lstrip()
+    if entry_point and f"def {entry_point}" not in head and "def " in head:
+        # Different top-level def: treat as stop junk and drop everything.
+        return ""
+    # Body is everything after the signature line.
+    return remainder
+
+
+def _indent_body_if_needed(body: str) -> str:
+    """HumanEval prompts end inside a function; bare top-level lines need indent."""
+    if not body.strip():
+        return body
+    lines = body.splitlines(True)
+    first = next((ln for ln in lines if ln.strip()), "")
+    if first.startswith((" ", "\t")):
+        return body
+    out: list[str] = []
+    for ln in lines:
+        if not ln.strip() or ln.startswith((" ", "\t")):
+            out.append(ln)
+        else:
+            ending = "\n" if ln.endswith("\n") else ""
+            core = ln[:-1] if ln.endswith("\n") else ln
+            out.append("    " + core + ending)
+    return "".join(out)
+
+
+def extract_code(completion: str, prompt: str, entry_point: str | None = None) -> str:
+    """Turn a model completion into a function-body continuation for `prompt + body`."""
+    text = strip_markdown_fence(completion)
+    text = truncate_at_stop_sequences(text)
+    if text.startswith(prompt):
+        text = text[len(prompt) :]
+    for marker in ("### Response:", "### Instruction:", "### Input:"):
+        if marker in text:
+            text = text.split(marker)[-1]
+    text = strip_markdown_fence(text)
+    text = truncate_at_stop_sequences(text)
+    text = _drop_rewritten_signature(text, entry_point)
+    text = _indent_body_if_needed(text)
     return text
 
 
@@ -166,7 +250,7 @@ def check_correctness(task: dict, completion: str, timeout_s: float = 3.0) -> Ev
     prompt = task["prompt"]
     entry = task["entry_point"]
     test = task["test"]
-    body = extract_code(completion, prompt)
+    body = extract_code(completion, prompt, entry_point=entry)
     # Assemble program: prompt + completion body + tests
     program = prompt + body
     if "def check(" not in program:
@@ -191,10 +275,18 @@ def generate_completion(
     max_new_tokens: int = 256,
     temperature: float = 0.2,
     top_p: float = 0.95,
+    *,
+    prompt_mode: str = "code",
 ) -> str:
     import torch
 
-    inputs = tokenizer(prompt, return_tensors="pt")
+    if prompt_mode == "code":
+        gen_prompt = wrap_code_completion_prompt(prompt)
+    elif prompt_mode == "chat":
+        gen_prompt = wrap_chat_prompt(prompt)
+    else:
+        gen_prompt = prompt
+    inputs = tokenizer(gen_prompt, return_tensors="pt")
     if torch.cuda.is_available():
         inputs = {k: v.cuda() for k, v in inputs.items()}
         model_device = next(model.parameters()).device
@@ -210,13 +302,25 @@ def generate_completion(
     else:
         gen_kwargs.update(do_sample=False)
 
+    # Prefer native stop strings when the installed transformers supports them.
+    if prompt_mode == "code":
+        gen_kwargs["stop_strings"] = ["\nclass", "\ndef", "\n#", "\nif __name__", "\nprint("]
+        gen_kwargs["tokenizer"] = tokenizer
+
     # Avoid transformers warning when both max_length and max_new_tokens are set.
     if getattr(model, "generation_config", None) is not None:
         model.generation_config.max_length = None
 
     with torch.no_grad():
-        out = model.generate(**inputs, **gen_kwargs)
+        try:
+            out = model.generate(**inputs, **gen_kwargs)
+        except TypeError:
+            gen_kwargs.pop("stop_strings", None)
+            gen_kwargs.pop("tokenizer", None)
+            out = model.generate(**inputs, **gen_kwargs)
     text = tokenizer.decode(out[0][inputs["input_ids"].shape[-1] :], skip_special_tokens=True)
+    if prompt_mode == "code":
+        text = truncate_at_stop_sequences(text)
     return text
 
 
@@ -230,7 +334,8 @@ def evaluate_humaneval(
 ) -> dict:
     tasks = load_humaneval_tasks(n)
     results: list[EvalResult] = []
-    for task in tasks:
+    logger.info("HumanEval start: n=%d", len(tasks))
+    for i, task in enumerate(tasks, start=1):
         completion = generate_completion(
             model,
             tokenizer,
@@ -238,8 +343,16 @@ def evaluate_humaneval(
             max_new_tokens=max_new_tokens,
             temperature=temperature,
             top_p=top_p,
+            prompt_mode="code",
         )
         results.append(check_correctness(task, completion))
+        if i == 1 or i % 10 == 0 or i == len(tasks):
+            logger.info(
+                "HumanEval %d/%d passed=%d",
+                i,
+                len(tasks),
+                sum(1 for r in results if r.passed),
+            )
 
     passed = sum(1 for r in results if r.passed)
     total = len(results)

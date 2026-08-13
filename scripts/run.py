@@ -79,10 +79,15 @@ def cmd_eval(args: argparse.Namespace) -> None:
     save_report(he, out / "humaneval.json")
     print(json.dumps({k: he[k] for k in ("benchmark", "n", "pass_at_1", "passed")}, indent=2))
 
+    harness_n = args.harness_n if args.harness_n is not None else int(ev.get("harness_n", 500))
+    if harness_n <= 0:
+        print("Skipping harness (--harness-n <= 0)")
+        return
+
     harness = run_harness(
         model,
         tokenizer,
-        n=int(args.harness_n or ev.get("harness_n", 500)),
+        n=harness_n,
         max_new_tokens=int(ev.get("max_new_tokens", 256)),
         temperature=float(ev.get("temperature", 0.2)),
         top_p=float(ev.get("top_p", 0.95)),
