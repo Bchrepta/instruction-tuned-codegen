@@ -106,3 +106,16 @@ def test_extract_code_stop_sequences():
     body = extract_code(completion, prompt, entry_point="add")
     assert "evil" not in body
     compile(prompt + body, "<test>", "exec")
+
+
+def test_extract_code_finds_def_after_preamble():
+    from instruction_codegen.eval.humaneval_eval import extract_code
+
+    prompt = 'def add(a: int, b: int) -> int:\n    """Return a + b."""\n'
+    completion = "Sure, here you go:\n\ndef add(a: int, b: int) -> int:\n    return a + b\n"
+    body = extract_code(completion, prompt, entry_point="add")
+    assert "Sure" not in body
+    compile(prompt + body, "<test>", "exec")
+    ns: dict = {}
+    exec(prompt + body, ns)
+    assert ns["add"](2, 3) == 5

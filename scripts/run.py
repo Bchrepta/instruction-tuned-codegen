@@ -75,9 +75,19 @@ def cmd_eval(args: argparse.Namespace) -> None:
         max_new_tokens=int(ev.get("max_new_tokens", 256)),
         temperature=float(ev.get("temperature", 0.2)),
         top_p=float(ev.get("top_p", 0.95)),
+        prompt_mode=getattr(args, "prompt_mode", None) or ev.get("prompt_mode", "raw"),
     )
     save_report(he, out / "humaneval.json")
-    print(json.dumps({k: he[k] for k in ("benchmark", "n", "pass_at_1", "passed")}, indent=2))
+    print(
+        json.dumps(
+            {
+                k: he[k]
+                for k in ("benchmark", "n", "pass_at_1", "passed", "prompt_mode", "error_histogram")
+                if k in he
+            },
+            indent=2,
+        )
+    )
 
     harness_n = args.harness_n if args.harness_n is not None else int(ev.get("harness_n", 500))
     if harness_n <= 0:
@@ -176,6 +186,12 @@ def build_parser() -> argparse.ArgumentParser:
     ev.add_argument("--output", default=None)
     ev.add_argument("--humaneval-n", type=int, default=None)
     ev.add_argument("--harness-n", type=int, default=None)
+    ev.add_argument(
+        "--prompt-mode",
+        choices=("raw", "code", "chat"),
+        default=None,
+        help="HumanEval prompt style: raw continuation (default), code instruction wrap, or chat",
+    )
     ev.set_defaults(func=cmd_eval)
 
     bp = sub.add_parser("benchmark-packing", help="Measure packing vs naive pad utilization")

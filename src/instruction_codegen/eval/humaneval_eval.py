@@ -115,22 +115,20 @@ def load_humaneval_tasks(n: int | None = None) -> list[dict]:
     return tasks
 
 
-# HumanEval / Codex-style stops. Applied to the completion only (not the prompt).
-STOP_SEQUENCES = (
-    "\nclass ",
-    "\nclass\t",
-    "\ndef ",
-    "\ndef\t",
+# Stops for *raw* HumanEval continuation (model is already inside a function body).
+# Do NOT use these as live generation stops in instruction/chat mode: models often
+# write a short preamble and then `def`, and `\ndef` would cut off before any code.
+RAW_STOP_SEQUENCES = (
+    "\nclass",
+    "\ndef",
     "\n#",
-    "\nif __name__",
+    "\nif",
     "\nprint(",
-    "\nassert ",
-    "\n@@@",
 )
 
 
 def wrap_code_completion_prompt(code_prompt: str) -> str:
-    """Match CodeAlpaca SFT format so instruction-tuned adapters stay on-distribution."""
+    """Optional CodeAlpaca-style wrap (not the default HumanEval protocol)."""
     return (
         "### Instruction:\n"
         "Complete the following Python function. "
@@ -145,9 +143,9 @@ def wrap_chat_prompt(user_text: str) -> str:
     return f"### Instruction:\n{user_text.strip()}\n\n### Response:\n"
 
 
-def truncate_at_stop_sequences(text: str) -> str:
+def truncate_at_stop_sequences(text: str, stops: tuple[str, ...] = RAW_STOP_SEQUENCES) -> str:
     cut = len(text)
-    for stop in STOP_SEQUENCES:
+    for stop in stops:
         idx = text.find(stop)
         if idx > 0:
             cut = min(cut, idx)
@@ -170,6 +168,17 @@ def strip_markdown_fence(text: str) -> str:
     return text
 
 
+def _find_entry_def(text: str, entry_point: str) -> str | None:
+    """Return text starting at `def entry_point` if present at a line start."""
+    needle = f"def {entry_point}"
+    if text.lstrip().startswith(needle):
+        return text.lstrip()
+    idx = text.find("\n" + needle)
+    if idx >= 0:
+        return text[idx + 1 :]
+    return None
+
+
 def _drop_rewritten_signature(text: str, entry_point: str | None) -> str:
     """If the model re-emits `def entry(...):`, keep only the function body."""
     stripped = text.lstrip("\n")
@@ -178,9 +187,7 @@ def _drop_rewritten_signature(text: str, entry_point: str | None) -> str:
     first_line, _, remainder = stripped.partition("\n")
     head = first_line.lstrip()
     if entry_point and f"def {entry_point}" not in head and "def " in head:
-        # Different top-level def: treat as stop junk and drop everything.
         return ""
-    # Body is everything after the signature line.
     return remainder
 
 
@@ -206,15 +213,24 @@ def _indent_body_if_needed(body: str) -> str:
 def extract_code(completion: str, prompt: str, entry_point: str | None = None) -> str:
     """Turn a model completion into a function-body continuation for `prompt + body`."""
     text = strip_markdown_fence(completion)
-    text = truncate_at_stop_sequences(text)
-    if text.startswith(prompt):
-        text = text[len(prompt) :]
     for marker in ("### Response:", "### Instruction:", "### Input:"):
         if marker in text:
             text = text.split(marker)[-1]
     text = strip_markdown_fence(text)
+    if text.startswith(prompt):
+        text = text[len(prompt) :]
+
+    # Instruction-style answers often put the real function after a preamble.
+    if entry_point:
+        located = _find_entry_def(text, entry_point)
+        if located is not None:
+            text = located
+
+    # Now that we are at the solution (body or rewritten def), cut trailing junk.
     text = truncate_at_stop_sequences(text)
     text = _drop_rewritten_signature(text, entry_point)
+    # If body still contains a later top-level def (signature already dropped), trim.
+    text = truncate_at_stop_sequences(text)
     text = _indent_body_if_needed(text)
     return text
 
@@ -276,7 +292,7 @@ def generate_completion(
     temperature: float = 0.2,
     top_p: float = 0.95,
     *,
-    prompt_mode: str = "code",
+    prompt_mode: str = "raw",
 ) -> str:
     import torch
 
@@ -302,9 +318,9 @@ def generate_completion(
     else:
         gen_kwargs.update(do_sample=False)
 
-    # Prefer native stop strings when the installed transformers supports them.
-    if prompt_mode == "code":
-        gen_kwargs["stop_strings"] = ["\nclass", "\ndef", "\n#", "\nif __name__", "\nprint("]
+    # Live stop strings are only safe for raw in-body continuation.
+    if prompt_mode == "raw":
+        gen_kwargs["stop_strings"] = list(RAW_STOP_SEQUENCES)
         gen_kwargs["tokenizer"] = tokenizer
 
     # Avoid transformers warning when both max_length and max_new_tokens are set.
@@ -319,9 +335,21 @@ def generate_completion(
             gen_kwargs.pop("tokenizer", None)
             out = model.generate(**inputs, **gen_kwargs)
     text = tokenizer.decode(out[0][inputs["input_ids"].shape[-1] :], skip_special_tokens=True)
-    if prompt_mode == "code":
+    if prompt_mode == "raw":
         text = truncate_at_stop_sequences(text)
     return text
+
+
+def _error_histogram(results: list[EvalResult]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for r in results:
+        if r.passed:
+            key = "passed"
+        else:
+            err = r.error or "unknown"
+            key = err.split(":", 1)[0]
+        counts[key] = counts.get(key, 0) + 1
+    return dict(sorted(counts.items(), key=lambda kv: (-kv[1], kv[0])))
 
 
 def evaluate_humaneval(
@@ -331,10 +359,12 @@ def evaluate_humaneval(
     max_new_tokens: int = 256,
     temperature: float = 0.2,
     top_p: float = 0.95,
+    *,
+    prompt_mode: str = "raw",
 ) -> dict:
     tasks = load_humaneval_tasks(n)
     results: list[EvalResult] = []
-    logger.info("HumanEval start: n=%d", len(tasks))
+    logger.info("HumanEval start: n=%d prompt_mode=%s", len(tasks), prompt_mode)
     for i, task in enumerate(tasks, start=1):
         completion = generate_completion(
             model,
@@ -343,8 +373,13 @@ def evaluate_humaneval(
             max_new_tokens=max_new_tokens,
             temperature=temperature,
             top_p=top_p,
-            prompt_mode="code",
+            prompt_mode=prompt_mode,
         )
+        if i == 1:
+            preview = completion.replace("\n", "\\n")
+            if len(preview) > 240:
+                preview = preview[:240] + "..."
+            logger.info("HumanEval sample completion[0]: %s", preview)
         results.append(check_correctness(task, completion))
         if i == 1 or i % 10 == 0 or i == len(tasks):
             logger.info(
@@ -361,6 +396,8 @@ def evaluate_humaneval(
         "n": total,
         "pass_at_1": passed / total if total else 0.0,
         "passed": passed,
+        "prompt_mode": prompt_mode,
+        "error_histogram": _error_histogram(results),
         "details": [r.__dict__ for r in results],
     }
     return report
