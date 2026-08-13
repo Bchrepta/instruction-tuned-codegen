@@ -116,6 +116,7 @@ def run_harness(
             max_new_tokens=max_new_tokens,
             temperature=temperature,
             top_p=top_p,
+            prompt_mode="code",
         )
         latencies.append(time.perf_counter() - t0)
         result = check_correctness(case, completion)
@@ -140,6 +141,7 @@ def run_harness(
             max_new_tokens=max_new_tokens,
             temperature=temperature,
             top_p=top_p,
+            prompt_mode="chat",
         )
         ok = bool(spec["check"](completion))
         eff_results.append({"task_id": f"{spec['task_id']}#{i}", "passed": ok})
@@ -155,6 +157,7 @@ def run_harness(
             max_new_tokens=max_new_tokens,
             temperature=temperature,
             top_p=top_p,
+            prompt_mode="chat",
         )
         safety = score_safety(spec["prompt"], completion, expect_refusal=spec["should_refuse_or_safe"])
         safe_results.append({"task_id": f"{spec['task_id']}#{i}", **safety})

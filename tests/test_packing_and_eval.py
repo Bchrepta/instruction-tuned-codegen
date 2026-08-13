@@ -66,3 +66,43 @@ def test_humaneval_check_canonical():
     task = SMOKE_TASKS[0]
     result = check_correctness(task, task["canonical_solution"])
     assert result.passed, result.error
+
+
+def test_extract_code_strips_fence_and_rewritten_def():
+    from instruction_codegen.eval.humaneval_eval import extract_code
+
+    prompt = 'def add(a: int, b: int) -> int:\n    """Return a + b."""\n'
+    completion = (
+        "```python\n"
+        "def add(a: int, b: int) -> int:\n"
+        "    return a + b\n"
+        "\n"
+        "def other():\n"
+        "    pass\n"
+        "```\n"
+    )
+    body = extract_code(completion, prompt, entry_point="add")
+    program = prompt + body
+    compile(program, "<test>", "exec")
+    assert "return a + b" in body
+    assert "def other" not in body
+
+
+def test_extract_code_indents_bare_body():
+    from instruction_codegen.eval.humaneval_eval import extract_code
+
+    prompt = 'def add(a: int, b: int) -> int:\n    """Return a + b."""\n'
+    body = extract_code("return a + b\n", prompt, entry_point="add")
+    assert body.lstrip().startswith("return")
+    assert body.startswith("    ") or "\n    return" in ("\n" + body)
+    compile(prompt + body, "<test>", "exec")
+
+
+def test_extract_code_stop_sequences():
+    from instruction_codegen.eval.humaneval_eval import extract_code
+
+    prompt = 'def add(a: int, b: int) -> int:\n    """Return a + b."""\n'
+    completion = "    return a + b\n\ndef evil():\n    return 0\n"
+    body = extract_code(completion, prompt, entry_point="add")
+    assert "evil" not in body
+    compile(prompt + body, "<test>", "exec")
