@@ -132,6 +132,20 @@ HumanEval absolute delta: +3/164 (~1.83 pp). Relative gain is undefined because 
 Packing is the clear win on this box. Absolute HumanEval is still low for TinyLlama-1.1B; that is not the Llama-2 A100 target.
 Safety fell after fine-tuning on this harness; treat that as a real tradeoff of this home-GPU run, not noise to ignore.
 
+### RTX 3080 / Llama-2-7B QLoRA (`configs/rtx3080_llama2.yaml`)
+
+Artifacts: `results/rtx3080_llama2/` and `results/rtx3080_llama2_base/`.
+Model: Llama-2-7B QLoRA (r=16, alpha=32), 4-bit NF4 eval, seq 1024, 15k CodeAlpaca, 220 steps (~90 min). Train log had intermittent `loss=nan`.
+
+| Metric | Base | Fine-tuned |
+|---|---|---|
+| Naive pad util | | 10.8% |
+| Packed util | | 92.3% |
+| HumanEval pass@1 (4-bit eval) | 0/164 (0%) | 3/164 (~1.83%) |
+
+HumanEval absolute delta: +3/164 (~1.83 pp). Relative gain undefined at base 0.
+This is not the A100 bf16 recipe and not a literature Llama-2 HumanEval replicate (published base is often ~12%). Packing util is again the strong measured win. Harness not re-run for this config.
+
 ### A100 / Llama-2-7B
 
 Not measured in-repo yet. Targets live in `results/TARGETS.md`.

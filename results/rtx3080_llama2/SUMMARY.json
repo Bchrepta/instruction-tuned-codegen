@@ -1,0 +1,64 @@
+{
+  "run": "rtx3080_llama2",
+  "hardware": "RTX 3080 10GB",
+  "config": "configs/rtx3080_llama2.yaml",
+  "model_name_or_path": "meta-llama/Llama-2-7b-hf",
+  "adapter": "checkpoints/rtx3080-llama2-lora",
+  "train": {
+    "steps": 220,
+    "elapsed_sec": 5375.1,
+    "precision": "fp16",
+    "max_seq_length": 1024,
+    "lora_r": 16,
+    "lora_alpha": 32,
+    "naive_pad_utilization": 0.1085,
+    "packed_utilization": 0.9226,
+    "num_examples": 15000,
+    "num_packed_sequences": 1764
+  },
+  "eval_finetuned": {
+    "humaneval": {
+      "n": 164,
+      "pass_at_1": 0.018292682926829267,
+      "passed": 3,
+      "prompt_mode": "raw",
+      "error_histogram": {
+        "SyntaxError": 132,
+        "AssertionError": 25,
+        "passed": 3,
+        "ValueError": 2,
+        "AttributeError": 1,
+        "IndexError": 1
+      }
+    },
+    "harness": null
+  },
+  "eval_base": {
+    "humaneval": {
+      "n": 164,
+      "pass_at_1": 0.0,
+      "passed": 0,
+      "prompt_mode": "raw",
+      "error_histogram": {
+        "SyntaxError": 150,
+        "AssertionError": 12,
+        "TypeError": 1,
+        "ValueError": 1
+      }
+    },
+    "harness": null
+  },
+  "compare_humaneval": {
+    "base_pass_at_1": 0.0,
+    "ft_pass_at_1": 0.018292682926829267,
+    "absolute_delta": 0.018292682926829267,
+    "relative_improvement": null,
+    "relative_improvement_pct": null,
+    "relative_improvement_note": "undefined when base pass@1 is 0; report absolute_delta instead"
+  },
+  "notes": [
+    "Packing is the strongest measured result on this run (10.8% naive pad to 92.3% packed).",
+    "HumanEval pass@1 (fine-tuned) is 1.83% (3/164) for meta-llama/Llama-2-7b-hf. Home-GPU QLoRA/TinyLlama numbers are not the A100 bf16 target.",
+    "Base HumanEval was 0/164, so relative gain is undefined; absolute delta is +3/164 (1.83 pp)."
+  ]
+}

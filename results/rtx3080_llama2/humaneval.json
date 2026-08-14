@@ -1,0 +1,18 @@
+{
+  "benchmark": "HumanEval",
+  "n": 164,
+  "pass_at_1": 0.018292682926829267,
+  "passed": 3,
+  "prompt_mode": "raw",
+  "eval_load": "4bit_nf4",
+  "adapter": "checkpoints/rtx3080-llama2-lora",
+  "error_histogram": {
+    "SyntaxError": 132,
+    "AssertionError": 25,
+    "passed": 3,
+    "ValueError": 2,
+    "AttributeError": 1,
+    "IndexError": 1
+  },
+  "note": "Summary only. Local run may have a details[] array that was not committed."
+}
