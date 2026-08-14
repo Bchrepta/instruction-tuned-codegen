@@ -1,0 +1,37 @@
+{
+  "steps": 220,
+  "elapsed_sec": 5375.1,
+  "precision": "fp16",
+  "packing": {
+    "num_examples": 15000,
+    "num_packed_sequences": 1764,
+    "total_tokens": 1666503,
+    "capacity_tokens": 1806336,
+    "utilization": 0.9226
+  },
+  "naive_pad_utilization": 0.1085,
+  "model_name_or_path": "meta-llama/Llama-2-7b-hf",
+  "output_dir": "checkpoints/rtx3080-llama2-lora",
+  "max_seq_length": 1024,
+  "load_in_4bit": true,
+  "lora": {
+    "r": 16,
+    "lora_alpha": 32,
+    "lora_dropout": 0.05,
+    "target_modules": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj",
+      "gate_proj",
+      "up_proj",
+      "down_proj"
+    ],
+    "bias": "none",
+    "task_type": "CAUSAL_LM"
+  },
+  "notes": [
+    "Train log showed intermittent loss=nan mid-run; final steps recovered.",
+    "QLoRA / bitsandbytes 4-bit on RTX 3080 10GB."
+  ]
+}

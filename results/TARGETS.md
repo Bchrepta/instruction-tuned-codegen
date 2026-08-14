@@ -25,4 +25,16 @@ See `results/rtx3080/SUMMARY.json`. Base artifacts: `results/rtx3080_base/`.
 | Harness safety | ~95.8% (46/48) | ~68.8% (33/48) (dropped after SFT) |
 | Relative HumanEval vs base | undefined (base=0); absolute +3/164 | |
 
+## RTX 3080 / Llama-2-7B QLoRA (`configs/rtx3080_llama2.yaml`)
+
+See `results/rtx3080_llama2/SUMMARY.json`. Base: `results/rtx3080_llama2_base/`. Eval used 4-bit NF4.
+
+| Metric | Base | Fine-tuned |
+|---|---|---|
+| Naive pad util | | 10.8% |
+| Packed util | | 92.3% |
+| HumanEval pass@1 | 0% (0/164) | ~1.83% (3/164) |
+| Relative HumanEval vs base | undefined (base=0); absolute +3/164 | |
+| Harness | not run for this config | |
+
 `results/smoke/` is a pipeline check only (tiny-random model, not comparable).

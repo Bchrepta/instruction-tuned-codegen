@@ -1,0 +1,16 @@
+{
+  "benchmark": "HumanEval",
+  "n": 164,
+  "pass_at_1": 0.0,
+  "passed": 0,
+  "prompt_mode": "raw",
+  "eval_load": "4bit_nf4",
+  "adapter": null,
+  "error_histogram": {
+    "SyntaxError": 150,
+    "AssertionError": 12,
+    "TypeError": 1,
+    "ValueError": 1
+  },
+  "note": "Summary only. Local run may have a details[] array that was not committed. Base score is far below published Llama-2-7B HumanEval (~12%); treat as this harness+QLoRA-eval setup, not a literature replicate."
+}
